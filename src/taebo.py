@@ -25,22 +25,21 @@ class Ui(QMainWindow):
         # print(type(self.ui)) # QWidget
         
         self.worker = Worker(func=self.playTaebo, display=self.ui.display) # func로 쓰레드에 함수 넘기고 kwargs로 display 넘김
-        #self.worker.signal.connect(self.ui.display.setText)
-        #self.worker.statusChanged.connect()
+        self.worker.signal.connect(self.ui.display.setText) # Worker 쓰레드의 signal과 setText 연결
         self.worker.start()
 
-    def playTaebo(self, args): # 쓰레드에 넘겨주는 함수
-        display = self.ui.display
+    def playTaebo(self, signal, args): # 쓰레드에 넘겨주는 함수
         while True:
             displayString = ""
             for count in range(100):
                 ascii = random.randrange(33, 126 + 1)
                 displayString += chr(ascii)
-            display.setText(displayString)
+            signal.emit(displayString) # Worker의 signal을 받아 작동, 메인 쓰레드에 연결된 setText 함수 실행
+            #display.setText(displayString)
             time.sleep(0.01)
 
 class Worker(QThread): # QThread 멀티 쓰레드
-    #signal = QtCore.pyqtSignal(str)
+    signal = QtCore.pyqtSignal(str)
     #statusChanged = QtCore.pyqtSignal(bool)
 
     def __init__(self, func, **kwargs):
@@ -50,7 +49,7 @@ class Worker(QThread): # QThread 멀티 쓰레드
         self.args = kwargs # kwargs로 딕셔너리 형태로 func제외 파라미터 다 받음
 
     def run(self):
-        self.func(self.args)
+        self.func(self.signal, self.args)
         #self.func(self.signal, self.args)
 
 # 메인 라인
