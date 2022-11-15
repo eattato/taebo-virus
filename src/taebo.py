@@ -66,8 +66,19 @@ class Ui(QMainWindow):
 
             time.sleep(self.timing)
 
-    def resize(self, width, height):
+    def resize(self, width, height): # 디스플레이 크기 조정
         self.ui.display.resize(width, height)
+    
+    def eventFilter(self, obj, event):
+        print("{} = {} ?".format(event.type(), QtCore.QEvent.KeyPress))
+        if event.type() == QtCore.QEvent.KeyPress: # 키를 눌렀을 때
+            if event.key() == 16777217 or event.key() == 16777218: # 누른 키가 Alt나 Tab이면
+                print("anti key!")
+                #return True # 막아버림
+                return super(Ui, self).eventFilter(obj, event) # 나중에 되면 없애기
+
+        # 해당 안되면 안 막고 그대로 넘김
+        return super(Ui, self).eventFilter(obj, event)
 
 # QThread 멀티 쓰레드
 class Worker(QThread):
@@ -86,8 +97,14 @@ class Worker(QThread):
 # 메인 라인
 if __name__ == "__main__":
     app = QApplication(sys.argv) # 애플리케이션 생성
+
+    # 크기 조정
     screen = app.primaryScreen()
     QtGui.QFontDatabase.addApplicationFont(os.path.join(filePath, "malgun.ttf")) # 폰트 추가
     window = Ui(0.1) # UI 객체를 생성
     window.resize(screen.size().width(), screen.size().height())
+
+    # 키 탈출 방지 필터
+    window.installEventFilter(window)
+
     app.exec_() # 애플리케이션 실행
