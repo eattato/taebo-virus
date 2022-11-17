@@ -48,7 +48,8 @@ class Ui(QMainWindow):
         self.timing = timing
         self.ui = uic.loadUi(uiPath)
         self.ui.setWindowTitle("절 대 태 보 해")
-        self.ui.showFullScreen()
+        #self.ui.showFullScreen()
+        self.ui.show()
         self.ui.display.setFont(QtGui.QFont("malgun", fontSize))
         self.player = QMediaPlayer()
         self.screenSize = width
@@ -82,31 +83,65 @@ class Ui(QMainWindow):
             targetFrames = []
             while currentTime <= totalTime:
                 currentFrame = math.floor(currentTime * fps)# / frameCount
-                targetFrames.append(currentFrame)
+                targetFrames.append({
+                    "frame": currentFrame,
+                    "content": None
+                })
                 currentTime += self.timing
                 #caps.set(cv2.CAP_PROP_POS_FRAMES, currentFrame) # 0부터 시작하는 프레임 인덱스 셀렉터 - 오류로 안 씀
             signal.emit("frame picking done.")
                 
-            # 아스키 아트 저장
-            signal.emit("ascii converting..")
-            print("ascii converting..")
-            for ind in range(0, frameCount):
-                signal.emit("ascii converting.. ({} / {})".format(ind, frameCount))
-                ret, frame = caps.read() # 프레임 읽기
-                if ind in targetFrames:
-                    results.append(asciiConvert(frame, self.screenSize)) # 프레임을 width 120짜리 아스키 아트로 변경
-            print("ascii convert done.")
-            signal.emit("ascii converting done.")
-
             # 오디오 추출
+            signal.emit("audio loading..")
             self.playSound(signal)
+            signal.emit("audio loaded.")
+            
+            # 스트리밍 데이터
+            signal.emit("ascii converting..")
+            playStart = time.time()
+            waitTime = 0.5
+            skippedFrame = 0
 
-            # 재생
-            print("playing..")
-            currentTime = 0
-            for ascii in results:
-                signal.emit(ascii)
-                time.sleep(self.timing)
+            # 타이밍에 따른 아스키 아트 표시 함수
+            def displayAscii(frames, current, skip, signal):
+                targetFrame = None
+                for ind in range(skip, len(frames)):
+                    frameData = frames[ind]
+                    if frameData["frame"] <= current:
+                        targetFrame = frameData
+                        skip += 1
+                    else:
+                        break
+                if targetFrame:
+                    signal.emit(targetFrame["content"])
+                    return skip
+                else:
+                    return False
+
+            # 아스키 아트 변환
+            for ind in range(0, frameCount):
+                #signal.emit("ascii converting.. ({} / {})".format(ind, frameCount))
+                ret, frame = caps.read() # 프레임 읽기
+                for frameData in targetFrames:
+                    if frameData["frame"] == ind:
+                        frameData["content"] = asciiConvert(frame, self.screenSize)
+                        break
+                if playStart - waitTime >= 0:
+                    currentTime = time.time() - playStart - waitTime
+                    currentFrame = math.floor(currentTime * fps)
+                    result = displayAscii(frames=targetFrames, current=currentFrame, skip=skippedFrame, signal=signal)
+                    if result != None:
+                        skippedFrame = result
+            print("ascii converting is done, keep playing..")
+            time.sleep((playStart - waitTime) % self.timing)
+            while True:
+                currentTime = time.time() - playStart - waitTime
+                currentFrame = math.floor(currentTime * fps)
+                result = displayAscii(frames=targetFrames, current=currentFrame, skip=skippedFrame, signal=signal)
+                if result != None:
+                    skippedFrame = result
+                else:
+                    break
             signal.emit("NO SIGNAL")
             print("done.")
         else:

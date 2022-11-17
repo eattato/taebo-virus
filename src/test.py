@@ -1,3 +1,7 @@
-import cv2
-(major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
-print(major_ver)
+data = [{
+    "a": 3
+}]
+
+for d in data:
+    d["b"] = 2
+print(data)
