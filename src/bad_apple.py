@@ -130,7 +130,7 @@ class Ui(QMainWindow):
                     currentTime = time.time() - playStart - waitTime
                     currentFrame = math.floor(currentTime * fps)
                     result = displayAscii(frames=targetFrames, current=currentFrame, skip=skippedFrame, signal=signal)
-                    if result != None:
+                    if result:
                         skippedFrame = result
             print("ascii converting is done, keep playing..")
             time.sleep((playStart - waitTime) % self.timing)
@@ -138,7 +138,7 @@ class Ui(QMainWindow):
                 currentTime = time.time() - playStart - waitTime
                 currentFrame = math.floor(currentTime * fps)
                 result = displayAscii(frames=targetFrames, current=currentFrame, skip=skippedFrame, signal=signal)
-                if result != None:
+                if result:
                     skippedFrame = result
                 else:
                     break
