@@ -157,7 +157,7 @@ if __name__ == "__main__":
     # 크기 조정
     screen = app.primaryScreen()
     QtGui.QFontDatabase.addApplicationFont(os.path.join(filePath, "malgun.ttf")) # 폰트 추가
-    window = Ui(0.1, 10, 120, os.path.join(filePath, "badapple")) # UI 객체를 생성
+    window = Ui(0.1, 6, 200, os.path.join(filePath, "badapple")) # UI 객체를 생성
     window.resize(screen.size().width(), screen.size().height())
 
     app.exec_() # 애플리케이션 실행
