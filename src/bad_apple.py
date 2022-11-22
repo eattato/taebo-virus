@@ -4,7 +4,7 @@ from PyQt5.QtCore import QThread
 from PyQt5 import QtGui
 from PyQt5 import QtCore
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from moviepy.editor import VideoFileClip
+#from moviepy.editor import VideoFileClip
 
 import os
 import sys
@@ -92,9 +92,9 @@ class Ui(QMainWindow):
             signal.emit("frame picking done.")
                 
             # 오디오 추출
-            signal.emit("audio loading..")
-            self.playSound(signal)
-            signal.emit("audio loaded.")
+            # signal.emit("audio loading..")
+            # self.playSound(signal)
+            # signal.emit("audio loaded.")
             
             # 스트리밍 데이터
             signal.emit("ascii converting..")
@@ -118,7 +118,7 @@ class Ui(QMainWindow):
                 else:
                     return False
 
-            # 아스키 아트 변환
+            # 아스키 아트 변환과 동시에 재생
             for ind in range(0, frameCount):
                 #signal.emit("ascii converting.. ({} / {})".format(ind, frameCount))
                 ret, frame = caps.read() # 프레임 읽기
@@ -132,18 +132,26 @@ class Ui(QMainWindow):
                     result = displayAscii(frames=targetFrames, current=currentFrame, skip=skippedFrame, signal=signal)
                     if result:
                         skippedFrame = result
-            print("ascii converting is done, keep playing..")
+            print("ascii converting is done, keep playing.. - currently streamed {} frames.".format(skippedFrame))
             time.sleep((playStart - waitTime) % self.timing)
-            while True:
-                currentTime = time.time() - playStart - waitTime
-                currentFrame = math.floor(currentTime * fps)
-                result = displayAscii(frames=targetFrames, current=currentFrame, skip=skippedFrame, signal=signal)
-                if result:
-                    skippedFrame = result
-                else:
-                    break
-            signal.emit("NO SIGNAL")
-            print("done.")
+
+            # 변환 이후 마저 재생
+            loopCount = 0
+            errorDuringLoop = False
+            while errorDuringLoop == False: # 무한 반복
+                for frameData in targetFrames[skippedFrame:]:
+                    currentFrame = frameData["frame"]
+                    result = displayAscii(frames=targetFrames, current=currentFrame, skip=skippedFrame, signal=signal)
+                    if result:
+                        skippedFrame = result
+                    else:
+                        print("error: no frame")
+                        errorDuringLoop = True
+                        break
+                    time.sleep(self.timing)
+                loopCount += 1
+                print("loop {} done.".format(loopCount))
+                skippedFrame = 0 # 진행도 원점으로 리셋
         else:
             print("wrong video!")
             signal.emit("이런! 영상을 불러오지 못했어요.")
@@ -153,11 +161,11 @@ class Ui(QMainWindow):
 
     def playSound(self, signal):
         signal.emit("audio converting..")
-        video = VideoFileClip(self.vidPath + ".mp4")
-        audio = video.audio
-        audio.write_audiofile(self.vidPath + ".mp3")
-        audio.close()
-        video.close()
+        # video = VideoFileClip(self.vidPath + ".mp4")
+        # audio = video.audio
+        # audio.write_audiofile(self.vidPath + ".mp3")
+        # audio.close()
+        # video.close()
         signal.emit("audio convert done.")
 
         fileUrl = QtCore.QUrl.fromLocalFile(self.vidPath + ".mp3")
@@ -192,7 +200,7 @@ if __name__ == "__main__":
     # 크기 조정
     screen = app.primaryScreen()
     QtGui.QFontDatabase.addApplicationFont(os.path.join(filePath, "malgun.ttf")) # 폰트 추가
-    window = Ui(0.1, 6, 200, os.path.join(filePath, "badapple")) # UI 객체를 생성
+    window = Ui(0.1, 3, 400, os.path.join(filePath, "badapple")) # UI 객체를 생성
     window.resize(screen.size().width(), screen.size().height())
 
     app.exec_() # 애플리케이션 실행
